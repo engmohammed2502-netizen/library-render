@@ -10,4 +10,5 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . /app/
 
-CMD ["gunicorn", "rsu_library.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Default CMD; docker-compose overrides with migrate + create_root_user + gunicorn
+CMD ["gunicorn", "wsgi:application", "--bind", "0.0.0.0:8000"]
