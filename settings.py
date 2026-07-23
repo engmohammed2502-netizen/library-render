@@ -75,7 +75,15 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # --- Media Files (Google Drive Storage) ---
 # سيقرأ ملف JSON ومُعرِّف المجلد من متغيرات البيئة
-GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS = os.environ.get('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS')
+# --- Google Drive Storage Settings ---
+
+
+google_key_env = os.getenv('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS')
+
+if google_key_env:
+    # تحويل الـ \n النصية لسطر جديد حقيقي مفاهيمي لمكتبة جوجل
+    GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS = google_key_env.replace('\\n', '\n')
+    
 GOOGLE_DRIVE_STORAGE_MEDIA_ROOT = os.environ.get('GOOGLE_DRIVE_FOLDER_ID')
 
 if GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS and GOOGLE_DRIVE_STORAGE_MEDIA_ROOT:
