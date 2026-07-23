@@ -10,5 +10,8 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . /app/
 
-# Default CMD; docker-compose overrides with migrate + create_root_user + gunicorn
-CMD ["gunicorn", "wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--threads", "2", "--timeout", "120"]
+# تجميع الملفات الثابتة Static Files
+RUN python manage.py collectstatic --noinput || true
+
+# أمر التشغيل الذكي: ينفذ الـ Migrations ثم الـ Root User ثم يشغل Gunicorn على بورت Render المتغير
+CMD sh -c "python manage.py migrate && python manage.py create_root_user && gunicorn wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3 --threads 2 --timeout 120"
