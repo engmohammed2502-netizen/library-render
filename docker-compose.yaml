@@ -3,7 +3,7 @@ version: '3.8'
 services:
   web:
     build: .
-    command: sh -c "python manage.py makemigrations &&  python manage.py migrate && python manage.py create_root_user && gunicorn wsgi:application --bind 0.0.0.0:8000"
+    command: sh -c "python manage.py makemigrations &&  python manage.py migrate && python manage.py create_root_user && gunicorn wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 2 --timeout 120"
     volumes:
       - .:/app
       - static_volume:/app/static
@@ -29,13 +29,15 @@ services:
       - POSTGRES_DB=rsu_db
       - POSTGRES_USER=rsu_user
       - POSTGRES_PASSWORD=rsupassword
-  
-  tunnel:
-    image: cloudflare/cloudflared:latest
-    command: tunnel --url http://web:8080  # استبدل web باسم خدمة الموقع في ملفك
-    restart: unless-stopped
-    depends_on:
-      - web
+
+  localtonet:
+    image: localtonet/localtonet
+    container_name: localtonet_tunnel
+    restart: always
+    # الأمر الرسمي الصارم بدون أي إضافات تسبب خطأ التوكن
+    command: ["--authtoken", "idwAJl5sPeoEHuaOX0zfcjgZWyL8U37vB"]
+
+
 volumes:
   postgres_data:
   static_volume:

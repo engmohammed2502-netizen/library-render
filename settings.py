@@ -36,7 +36,7 @@ DATABASES = {
         'NAME': os.environ.get('DB_NAME', 'rsu_db'),
         'USER': os.environ.get('DB_USER', 'rsu_user'),
         'PASSWORD': os.environ.get('DB_PASSWORD', 'rsu_password'),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'HOST': os.environ.get('DB_HOST', 'db'),
         'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
@@ -80,9 +80,16 @@ LOGIN_REDIRECT_URL = 'home'
 
 # For production behind Nginx/reverse proxy: set CSRF_TRUSTED_ORIGINS=https://yourdomain.com
 _origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
-CSRF_TRUSTED_ORIGINS = [x.strip() for x in _origins.split(',') if x.strip()]
+CSRF_TRUSTED_ORIGINS = ['https://*.trycloudflare.com','http://localhost:8080','https://*.localto.net',]
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
-USE_X_FORWARDED_HOST = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
+#USE_X_FORWARDED_HOST = True
+#SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+else:
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
