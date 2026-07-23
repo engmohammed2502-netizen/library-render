@@ -3,4 +3,6 @@ psycopg2-binary>=2.9
 gunicorn>=21
 Pillow>=9.0.0
 whitenoise==6.4.0
+dj-database-url>=2.1.0
+django-googledrive-storage>=1.6.0
 
