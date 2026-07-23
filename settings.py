@@ -1,4 +1,5 @@
 import os
+import base64
 from pathlib import Path
 import dj_database_url
 
@@ -69,31 +70,43 @@ USE_I18N = True
 USE_TZ = True
 
 # --- Static Files ---
+
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # --- Media Files (Google Drive Storage) ---
-# سيقرأ ملف JSON ومُعرِّف المجلد من متغيرات البيئة
-# --- Google Drive Storage Settings ---
-
-
-google_key_env = os.getenv('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS')
-
-if google_key_env:
-    # تحويل الـ \n النصية لسطر جديد حقيقي مفاهيمي لمكتبة جوجل
-    GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS = google_key_env.replace('\\n', '\n')
-    
-GOOGLE_DRIVE_STORAGE_MEDIA_ROOT = os.environ.get('GOOGLE_DRIVE_FOLDER_ID')
-
-if GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS and GOOGLE_DRIVE_STORAGE_MEDIA_ROOT:
-    DEFAULT_FILE_STORAGE = 'gdstorage.storage.GoogleDriveStorage'
-
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# استدعاء المفتاح المشفر من Render
+google_key_b64 = os.environ.get('GOOGLE_DRIVE_BASE64_KEY')
+
+if google_key_b64:
+    try:
+        # فك التشفير وتحويله إلى نص JSON سليم
+        decoded_key = base64.b64decode(google_key_b64).decode('utf-8')
+        
+        # تمرير النص السليم للمتغير الذي تقرأه مكتبة gdstorage
+        GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS = decoded_key
+    except Exception as e:
+        print(f"Error decoding Google Drive Key: {e}")
+        GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS = None
+else:
+    GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS = None
+
+# استدعاء معرف المجلد
+GOOGLE_DRIVE_STORAGE_MEDIA_ROOT = os.environ.get('GOOGLE_DRIVE_FOLDER_ID')
+
+# تفعيل التخزين السحابي فقط إذا كان المفتاح ومعرف المجلد متوفرين
+if GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS and GOOGLE_DRIVE_STORAGE_MEDIA_ROOT:
+    DEFAULT_FILE_STORAGE = 'gdstorage.storage.GoogleDriveStorage'
+
+
+# --- Other Settings ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'library.User'
+
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 157286400  # 150 MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 157286400  # 150 MB
