@@ -1,5 +1,6 @@
 import os
 import base64
+import tempfile
 from pathlib import Path
 import dj_database_url
 
@@ -69,34 +70,47 @@ TIME_ZONE = 'Africa/Khartoum'
 USE_I18N = True
 USE_TZ = True
 
-# --- Static Files ---
+
+
+
+# --- Static & Media Files ---
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# --- Media Files (Google Drive Storage) ---
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# استدعاء المفتاح المشفر من Render
+
+# --- Google Drive Storage Configuration ---
 google_key_b64 = os.environ.get('GOOGLE_DRIVE_BASE64_KEY')
 
 if google_key_b64:
     try:
-        # فك التشفير وتحويله إلى نص JSON سليم
+        # 1. فك تشفير النص
         decoded_key = base64.b64decode(google_key_b64).decode('utf-8')
         
-        # التعديل هنا: حقن النص داخل متغيرات البيئة للنظام حتى تراه المكتبة
-        os.environ['GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS'] = decoded_key
+        # 2. إنشاء ملف مؤقت على السيرفر وكتبة المفتاح جواه
+        key_file_path = os.path.join(tempfile.gettempdir(), 'google_key.json')
+        with open(key_file_path, 'w') as f:
+            f.write(decoded_key)
+            
+        # 3. إعطاء مسار الملف للمتغير الأساسي اللي بتطلبه المكتبة
+        GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = key_file_path
+        
     except Exception as e:
-        print(f"Error decoding Google Drive Key: {e}")
+        print(f"FAILED TO PROCESS GOOGLE KEY: {e}")
+        GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = None
+else:
+    GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = None
 
-# استدعاء معرف المجلد
+# معرف المجلد من Render
 GOOGLE_DRIVE_STORAGE_MEDIA_ROOT = os.environ.get('GOOGLE_DRIVE_FOLDER_ID')
 
-# تفعيل التخزين السحابي فقط إذا كان المفتاح ومعرف المجلد متوفرين
-if os.environ.get('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS') and GOOGLE_DRIVE_STORAGE_MEDIA_ROOT:
+# تفعيل التخزين السحابي
+if GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE and GOOGLE_DRIVE_STORAGE_MEDIA_ROOT:
     DEFAULT_FILE_STORAGE = 'gdstorage.storage.GoogleDriveStorage'
+
 
 
 # --- Other Settings ---
