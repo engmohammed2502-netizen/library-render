@@ -22,12 +22,14 @@ urlpatterns = [
     
     # 7. روابط السمسترات داخل كل قسم
     path('department/<str:dept_code>/semester/<int:sem_id>/', views.semester_view, name='semester'),
+
+    # 7ب. إضافة كورس جديد داخل سمستر معين (متاحة للروت والبروفيسور)
+    path('department/<str:dept_code>/semester/<int:sem_id>/add_course/', views.add_course_view, name='add_course'),
     
     # 8. صفحة المادة العلمية (الملفات ومنتدى النقاش المطور)
     path('course/<int:course_id>/', views.course_detail, name='course_detail'),
 
-    # 9. رابط إضافة تعليق أو رد (جديد - لتفعيل المنتدى)
-    # هذا الرابط هو المسؤول عن استقبال التعليقات الجديدة والردود على تعليقات سابقة
+    # 9. رابط إضافة تعليق أو رد
     path('course/<int:course_id>/add_comment/', views.add_comment, name='add_comment'),
 
     # 10. روابط العمليات (تحميل الملفات وحذفها)
