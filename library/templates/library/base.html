@@ -15,25 +15,45 @@
         }
         body { font-family: 'Cairo', sans-serif; background: #f8f9fa; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
         .navbar { background: var(--nav-grad) !important; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-        .back-btn { position: absolute; top: 15px; left: 15px; z-index: 1000; }
         .main-card { border: none; border-radius: 15px; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.05); transition: 0.3s; }
         .main-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
         .btn-eng { border-radius: 30px; padding: 10px 25px; font-weight: bold; transition: 0.3s; }
         .footer { background: #2c3e50; color: white; padding: 20px 0; margin-top: auto; }
         .nav-link { font-weight: 600; }
+
+        /* السطر الثاني من البار - فيه زر الرجوع وزر القائمة */
+        .sub-toolbar {
+            background: rgba(0,0,0,0.15);
+            padding: 8px 0;
+        }
+        .sub-toolbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
         .menu-toggle-btn {
             background: rgba(255,255,255,0.15);
             border: none;
             color: #fff;
-            font-size: 1.3rem;
-            width: 44px;
-            height: 44px;
+            font-size: 1.2rem;
+            width: 40px;
+            height: 40px;
             border-radius: 8px;
         }
         .menu-toggle-btn:hover, .menu-toggle-btn:focus {
             background: rgba(255,255,255,0.3);
             color: #fff;
         }
+        .back-btn-inline {
+            color: #fff;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .back-btn-inline:hover { color: #fff; opacity: 0.85; }
+
         .dropdown-menu {
             border-radius: 12px;
             border: none;
@@ -50,23 +70,25 @@
     </style>
 </head>
 <body>
-    <div class="back-btn">
-        <a href="javascript:history.back()" class="btn btn-light btn-sm shadow-sm"><i class="fas fa-arrow-left"></i> رجوع</a>
-    </div>
 
-    <nav class="navbar navbar-dark mb-4">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a class="navbar-brand d-flex align-items-center" href="{% url 'home' %}">
+    <nav class="navbar navbar-dark">
+        <div class="container justify-content-center">
+            <a class="navbar-brand d-flex align-items-center mb-0" href="{% url 'home' %}">
                 <i class="fas fa-university me-2"></i>
                 <span>مكتبة كلية الهندسة - جامعة البحر الأحمر</span>
             </a>
+        </div>
+    </nav>
 
-            <!-- زر القائمة المنسدلة - بيظهر بنفس الشكل على كل الشاشات -->
+    <!-- السطر الثاني: زر القائمة يمين، زر الرجوع شمال -->
+    <div class="sub-toolbar mb-4">
+        <div class="container">
+            <!-- بيظهر أولاً بالكود عشان في RTL يطلع أقصى اليمين -->
             <div class="dropdown">
                 <button class="menu-toggle-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-bars"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end">
+                <ul class="dropdown-menu">
                     <li>
                         <a class="dropdown-item" href="{% url 'home' %}">
                             <i class="fas fa-home me-2"></i> الرئيسية
@@ -87,8 +109,13 @@
                     </li>
                 </ul>
             </div>
+
+            <!-- بيظهر ثانياً بالكود عشان في RTL يطلع أقصى الشمال -->
+            <a href="javascript:history.back()" class="back-btn-inline">
+                <i class="fas fa-arrow-left"></i> رجوع
+            </a>
         </div>
-    </nav>
+    </div>
 
     <div class="container mb-5">
         {% block content %}{% endblock %}
