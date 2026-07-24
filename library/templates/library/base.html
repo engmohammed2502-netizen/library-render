@@ -20,7 +20,33 @@
         .main-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
         .btn-eng { border-radius: 30px; padding: 10px 25px; font-weight: bold; transition: 0.3s; }
         .footer { background: #2c3e50; color: white; padding: 20px 0; margin-top: auto; }
-        .nav-link { font-weight: 600; margin: 0 10px; }
+        .nav-link { font-weight: 600; }
+        .menu-toggle-btn {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: #fff;
+            font-size: 1.3rem;
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+        }
+        .menu-toggle-btn:hover, .menu-toggle-btn:focus {
+            background: rgba(255,255,255,0.3);
+            color: #fff;
+        }
+        .dropdown-menu {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            padding: 8px;
+            min-width: 220px;
+        }
+        .dropdown-item {
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-weight: 600;
+        }
+        .dropdown-item:hover { background: #f1f4f8; }
     </style>
 </head>
 <body>
@@ -28,19 +54,37 @@
         <a href="javascript:history.back()" class="btn btn-light btn-sm shadow-sm"><i class="fas fa-arrow-left"></i> رجوع</a>
     </div>
 
-    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
-        <div class="container">
+    <nav class="navbar navbar-dark mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
             <a class="navbar-brand d-flex align-items-center" href="{% url 'home' %}">
                 <i class="fas fa-university me-2"></i>
                 <span>مكتبة كلية الهندسة - جامعة البحر الأحمر</span>
             </a>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="{% url 'home' %}"><i class="fas fa-home"></i> الرئيسية</a></li>
+
+            <!-- زر القائمة المنسدلة - بيظهر بنفس الشكل على كل الشاشات -->
+            <div class="dropdown">
+                <button class="menu-toggle-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item" href="{% url 'home' %}">
+                            <i class="fas fa-home me-2"></i> الرئيسية
+                        </a>
+                    </li>
                     {% if user.is_authenticated and user.user_type == 'ROOT' %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'root_dashboard' %}"><i class="fas fa-chart-line"></i> الإدارة</a></li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'root_dashboard' %}">
+                            <i class="fas fa-chart-line me-2"></i> الإدارة
+                        </a>
+                    </li>
                     {% endif %}
-                    <li class="nav-item"><a class="nav-link text-warning" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> خروج</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-warning" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt me-2"></i> خروج
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
