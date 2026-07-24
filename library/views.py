@@ -27,9 +27,7 @@ def login_view(request):
         user = authenticate(request, username=user_id, password=password)
         
         if user is not None:
-            # --- مهمة: تجميد الحسابات ---
             if user.is_frozen:
-                # عرض الرسالة التي طلبتها في حال تجميد الحساب [cite: 2026-01-17]
                 messages.error(request, 'عذراً، حسابك مجمد. يرجى التواصل مع الإدارة.')
                 return render(request, 'library/login.html')
                 
@@ -48,15 +46,12 @@ def guest_login(request):
     if request.method == 'POST':
         name = request.POST.get('guest_name')
         if name:
-            # --- مهمة: نظام الزوار وسجل الدخول ---
-            # تسجيل اسم الزائر في قاعدة البيانات عند الدخول [cite: 2026-01-17]
             GuestLog.objects.create(name=name)
-            
             request.session['is_guest'] = True
             request.session['guest_name'] = name
             request.session.set_expiry(1800) 
             return redirect('home')
-    return render(request, 'library/guest_login.html') # صفحة لطلب اسم الزائر
+    return render(request, 'library/guest_login.html')
 
 def logout_view(request):
     if request.user.is_authenticated:
@@ -93,23 +88,50 @@ def semester_view(request, dept_code, sem_id):
     
     context = {
         'courses': courses,
+        'dept_code': dept_code,
+        'sem_id': sem_id,
         'dept_name': dept_name,
         'semester_name': f"السمستر {sem_id}"
     }
     return render(request, 'library/semester.html', context)
 
-# --- مهمة: تفعيل المنتدى (تعليقات وردود) ---
+# --- مهمة: إضافة كورس جديد من داخل صفحة السمستر مباشرة ---
+# متاحة للروت والبروفيسور (ADMIN) فقط. القسم والسمستر بياخدهم تلقائياً من الرابط.
+@login_required
+def add_course_view(request, dept_code, sem_id):
+    if request.user.user_type not in ['ROOT', 'ADMIN']:
+        return redirect('home')
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        code = request.POST.get('code', '').strip()
+
+        if not name or not code:
+            messages.error(request, 'يجب إدخال اسم المادة وكودها')
+        else:
+            # لو اللي بينشئ الكورس بروفيسور، بيتحط أستاذ المقرر تلقائياً هو نفسه
+            professor = request.user if request.user.user_type == 'ADMIN' else None
+
+            Course.objects.create(
+                name=name,
+                code=code,
+                department=dept_code,
+                semester=sem_id,
+                professor=professor
+            )
+            log_activity(request.user, f"إضافة مادة: {name}", request)
+            messages.success(request, f'تم إضافة مادة "{name}" بنجاح')
+
+    return redirect('semester', dept_code=dept_code, sem_id=sem_id)
+
 def course_detail(request, course_id):
     if not request.user.is_authenticated and not is_guest(request):
         return redirect('login')
         
     course = get_object_or_404(Course, pk=course_id)
     files = course.files.all().order_by('-upload_date')
-    
-    # جلب التعليقات الرئيسية فقط (التي ليس لها أب) لترتيب الردود تحتها
     comments = course.comments.filter(parent=None).order_by('-created_at')
     
-    # معالجة رفع الملفات (للدكاترة والروت)
     if request.method == 'POST' and 'upload_file' in request.POST:
         if request.user.is_authenticated and request.user.user_type in ['ADMIN', 'ROOT']:
             file_type = request.POST.get('file_type') or 'LECTURE'
@@ -136,7 +158,6 @@ def course_detail(request, course_id):
     }
     return render(request, 'library/course_detail.html', context)
 
-# دالة إضافة التعليقات والردود للمنتدى
 def add_comment(request, course_id):
     if request.method == 'POST':
         course = get_object_or_404(Course, id=course_id)
@@ -163,6 +184,7 @@ def add_comment(request, course_id):
 # --- 4. لوحة تحكم الروت (Zero) ---
 @login_required
 def root_dashboard(request):
+    # مقصورة على الروت فقط - أي مستخدم تاني بيترمى لصفحة الرئيسية
     if request.user.user_type != 'ROOT':
         return redirect('home')
         
@@ -171,7 +193,7 @@ def root_dashboard(request):
         'professors_count': User.objects.filter(user_type='ADMIN').count(),
         'files_count': CourseFile.objects.count(),
         'active_now': ActivityLog.objects.filter(timestamp__gte=timezone.now()-timezone.timedelta(minutes=5)).count(),
-        'guest_logs': GuestLog.objects.all().order_by('-entry_time')[:10] # عرض آخر الضيوف
+        'guest_logs': GuestLog.objects.all().order_by('-entry_time')[:10]
     }
     
     logs = ActivityLog.objects.all().order_by('-timestamp')[:20]
@@ -195,11 +217,14 @@ def delete_file(request, file_id):
     if request.method != 'POST':
         return redirect(request.META.get('HTTP_REFERER') or 'home')
     file_obj = get_object_or_404(CourseFile, pk=file_id)
-    if request.user.user_type == 'ROOT' or request.user == file_obj.uploaded_by:
+
+    # أي بروفيسور (ADMIN) أو روت يقدر يحذف أي ملف، مش بس اللي رفعه هو بالذات
+    if request.user.user_type in ['ROOT', 'ADMIN']:
         course_id = file_obj.course_id
         file_obj.delete()
         messages.success(request, 'تم حذف الملف')
         return redirect('course_detail', course_id=course_id)
+
     return redirect(request.META.get('HTTP_REFERER') or 'home')
 
 @login_required
@@ -216,7 +241,19 @@ def add_user_view(request):
         if User.objects.filter(username=username).exists():
             messages.error(request, 'هذا الرقم الجامعي مسجل مسبقاً!')
         else:
-            User.objects.create_user(username=username, password=password, full_name=full_name, user_type=user_type)
+            new_user = User.objects.create_user(
+                username=username, password=password,
+                full_name=full_name, user_type=user_type
+            )
+
+            # --- مهم: is_staff / is_superuser للروت فقط ---
+            # عشان لا يقدر أي بروفيسور أو طالب يدخل صفحة /admin ولا الداشبورد
+            # مهما كانت الصلاحيات المعطاة له لاحقاً.
+            if user_type == 'ROOT':
+                new_user.is_staff = True
+                new_user.is_superuser = True
+                new_user.save()
+
             messages.success(request, f'تم إضافة {full_name} بنجاح')
             return redirect('root_dashboard')
             
