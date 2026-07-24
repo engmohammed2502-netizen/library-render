@@ -13,6 +13,23 @@
     </nav>
 </div>
 
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags }}{% endif %} py-2">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- زر إضافة كورس - يظهر فقط للروت والبروفيسور -->
+{% if user.is_authenticated and user.user_type in 'ROOT,ADMIN' %}
+<div class="mb-4">
+    <button type="button" class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+        <i class="fas fa-plus me-2"></i> إضافة مادة جديدة
+    </button>
+</div>
+{% endif %}
+
 <div class="row g-4">
     {% for course in courses %}
     <div class="col-md-4">
@@ -39,4 +56,40 @@
     </div>
     {% endfor %}
 </div>
+
+<!-- المودال الخاص بإضافة كورس جديد -->
+{% if user.is_authenticated and user.user_type in 'ROOT,ADMIN' %}
+<div class="modal fade" id="addCourseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'add_course' dept_code sem_id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">إضافة مادة جديدة - {{ semester_name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">اسم المادة</label>
+                        <input type="text" name="name" class="form-control" required placeholder="مثال: دوائر كهربائية 1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">كود المادة</label>
+                        <input type="text" name="code" class="form-control" required placeholder="مثال: EE201">
+                    </div>
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        سيتم إضافة المادة تلقائياً إلى: <strong>{{ dept_name }} - {{ semester_name }}</strong>
+                    </small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
