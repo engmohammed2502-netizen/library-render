@@ -1,6 +1,4 @@
 import os
-import base64
-import tempfile
 from pathlib import Path
 import dj_database_url
 
@@ -18,7 +16,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'gdstorage',  # مكتبة Google Drive
+    'storages',  # مكتبة django-storages بدل gdstorage
     'library',
 ]
 
@@ -36,7 +34,6 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'urls'
 
 # --- PostgreSQL (Aiven / Production / Local) ---
-# سيقرأ تلقائياً DATABASE_URL من متغيرات البيئة في Render
 DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get(
@@ -71,52 +68,37 @@ USE_I18N = True
 USE_TZ = True
 
 
-
-
-# --- Static & Media Files ---
+# --- Static Files (Whitenoise - محلي على السيرفر، ما بتغير) ---
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# --- Backblaze B2 Storage Configuration (S3-Compatible) ---
+AWS_ACCESS_KEY_ID = os.environ.get('B2_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('B2_APPLICATION_KEY')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('B2_BUCKET_NAME')
+AWS_S3_ENDPOINT_URL = os.environ.get('B2_ENDPOINT_URL')  # مثال: https://s3.us-west-004.backblazeb2.com
+AWS_S3_REGION_NAME = os.environ.get('B2_REGION_NAME')    # مثال: us-west-004
 
-# --- Google Drive Storage Configuration ---
-google_key_b64 = os.environ.get('GOOGLE_DRIVE_BASE64_KEY')
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+AWS_QUERYSTRING_AUTH = True       # الملفات Private، فمحتاجين توقيع مؤقت للرابط
+AWS_QUERYSTRING_EXPIRE = 3600     # صلاحية رابط الملف لمدة ساعة (عدّل حسب حاجتك)
 
-if google_key_b64:
-    try:
-        # 1. فك تشفير النص
-        decoded_key = base64.b64decode(google_key_b64).decode('utf-8')
-        
-        # 2. إنشاء ملف مؤقت على السيرفر وكتبة المفتاح جواه
-        key_file_path = os.path.join(tempfile.gettempdir(), 'google_key.json')
-        with open(key_file_path, 'w') as f:
-            f.write(decoded_key)
-            
-        # 3. إعطاء مسار الملف للمتغير الأساسي اللي بتطلبه المكتبة
-        GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = key_file_path
-        
-    except Exception as e:
-        print(f"FAILED TO PROCESS GOOGLE KEY: {e}")
-        GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = None
+# تفعيل B2 فقط لو المتغيرات موجودة، وإلا استخدم التخزين المحلي (مفيد أثناء التطوير محلياً)
+if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME and AWS_S3_ENDPOINT_URL:
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/'
 else:
-    GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = None
-
-# معرف المجلد من Render
-GOOGLE_DRIVE_STORAGE_MEDIA_ROOT = os.environ.get('GOOGLE_DRIVE_FOLDER_ID')
-
-# تفعيل التخزين السحابي
-if GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE and GOOGLE_DRIVE_STORAGE_MEDIA_ROOT:
-    DEFAULT_FILE_STORAGE = 'gdstorage.storage.GoogleDriveStorage'
-
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 # --- Other Settings ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'library.User'
-
 
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 157286400  # 150 MB
@@ -134,7 +116,7 @@ if _origins:
     CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in _origins.split(',')]
 else:
     CSRF_TRUSTED_ORIGINS = [
-        'https://rsu-project.onrender.com',
+        'https://library-render-8ghy.onrender.com',
         'https://*.onrender.com',
         'http://localhost:80',
     ]
