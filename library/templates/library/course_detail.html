@@ -8,6 +8,14 @@
                 <span class="badge bg-info">آخر تحديث: {{ course.last_update|date:"Y-m-d" }}</span>
             </div>
 
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags }}{% endif %} py-2">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
             <div class="accordion" id="materialsAccordion">
                 {% for type_code, type_name in material_types %}
                 <div class="accordion-item mb-2 border-0 shadow-sm">
@@ -28,11 +36,13 @@
                                         </div>
                                         <div class="d-flex gap-1">
                                             <a href="{% url 'download_file' file.id %}" class="btn btn-sm btn-success"><i class="fas fa-download"></i> تحميل</a>
-                                            {% if user.is_authenticated and user.user_type == 'ROOT' or user.is_authenticated and user == file.uploaded_by %}
-                                            <form method="POST" action="{% url 'delete_file' file.id %}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الملف؟');">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i> حذف</button>
-                                            </form>
+                                            {% if user.is_authenticated %}
+                                                {% if user.user_type == 'ROOT' or user.user_type == 'ADMIN' %}
+                                                <form method="POST" action="{% url 'delete_file' file.id %}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الملف؟');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i> حذف</button>
+                                                </form>
+                                                {% endif %}
                                             {% endif %}
                                         </div>
                                     </li>
@@ -47,30 +57,32 @@
                 {% endfor %}
             </div>
 
-            {% if user.is_authenticated and user.user_type == 'ROOT' or user.is_authenticated and user == course.professor %}
-            <div class="mt-4 p-3 border-top">
-                <h6 class="text-muted mb-3 small fw-bold">رفع ملف جديد لهذه المادة</h6>
-                <form method="POST" enctype="multipart/form-data" class="row g-2">
-                    {% csrf_token %}
-                    <input type="hidden" name="upload_file" value="1">
-                    <div class="col-md-4">
-                        <input type="text" name="title" class="form-control form-control-sm" placeholder="عنوان الملف" required>
-                    </div>
-                    <div class="col-md-2">
-                        <select name="file_type" class="form-select form-select-sm" required>
-                            {% for code, name in material_types %}
-                            <option value="{{ code }}">{{ name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <input type="file" name="file" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary btn-sm w-100">بدء الرفع</button>
-                    </div>
-                </form>
-            </div>
+            {% if user.is_authenticated %}
+                {% if user.user_type == 'ROOT' or user.user_type == 'ADMIN' %}
+                <div class="mt-4 p-3 border-top">
+                    <h6 class="text-muted mb-3 small fw-bold">رفع ملف جديد لهذه المادة</h6>
+                    <form method="POST" enctype="multipart/form-data" class="row g-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="upload_file" value="1">
+                        <div class="col-md-4">
+                            <input type="text" name="title" class="form-control form-control-sm" placeholder="عنوان الملف" required>
+                        </div>
+                        <div class="col-md-2">
+                            <select name="file_type" class="form-select form-select-sm" required>
+                                {% for code, name in material_types %}
+                                <option value="{{ code }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="file" name="file" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">بدء الرفع</button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
             {% endif %}
         </div>
     </div>
