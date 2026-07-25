@@ -35,6 +35,9 @@ urlpatterns = [
     # 9. رابط إضافة تعليق أو رد
     path('course/<int:course_id>/add_comment/', views.add_comment, name='add_comment'),
 
+    # 9ب. حذف رسالة من المنتدى (روت فقط)
+    path('comment/<int:comment_id>/delete/', views.delete_comment_view, name='delete_comment'),
+
     # 10. روابط العمليات (تحميل الملفات وحذفها)
     path('download/<int:file_id>/', views.download_file, name='download_file'),
     path('delete_file/<int:file_id>/', views.delete_file, name='delete_file'),
