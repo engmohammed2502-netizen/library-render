@@ -25,6 +25,9 @@ urlpatterns = [
 
     # 7ب. إضافة كورس جديد داخل سمستر معين (متاحة للروت والبروفيسور)
     path('department/<str:dept_code>/semester/<int:sem_id>/add_course/', views.add_course_view, name='add_course'),
+
+    # 7ج. حذف كورس (متاحة للروت والبروفيسور)
+    path('course/<int:course_id>/delete/', views.delete_course_view, name='delete_course'),
     
     # 8. صفحة المادة العلمية (الملفات ومنتدى النقاش المطور)
     path('course/<int:course_id>/', views.course_detail, name='course_detail'),
