@@ -124,6 +124,24 @@ def add_course_view(request, dept_code, sem_id):
 
     return redirect('semester', dept_code=dept_code, sem_id=sem_id)
 
+@login_required
+def delete_course_view(request, course_id):
+    if request.method != 'POST':
+        return redirect(request.META.get('HTTP_REFERER') or 'home')
+
+    course = get_object_or_404(Course, pk=course_id)
+
+    if request.user.user_type in ['ROOT', 'ADMIN']:
+        dept_code = course.department
+        sem_id = course.semester
+        course_name = course.name
+        course.delete()
+        log_activity(request.user, f"حذف مادة: {course_name}", request)
+        messages.success(request, f'تم حذف مادة "{course_name}" بنجاح')
+        return redirect('semester', dept_code=dept_code, sem_id=sem_id)
+
+    return redirect(request.META.get('HTTP_REFERER') or 'home')
+
 def course_detail(request, course_id):
     if not request.user.is_authenticated and not is_guest(request):
         return redirect('login')
