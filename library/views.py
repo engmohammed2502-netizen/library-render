@@ -148,7 +148,7 @@ def course_detail(request, course_id):
         
     course = get_object_or_404(Course, pk=course_id)
     files = course.files.all().order_by('-upload_date')
-    comments = course.comments.filter(parent=None).order_by('-created_at')
+    comments = course.comments.filter(parent=None).order_by('created_at')
     
     if request.method == 'POST' and 'upload_file' in request.POST:
         if request.user.is_authenticated and request.user.user_type in ['ADMIN', 'ROOT']:
@@ -175,6 +175,21 @@ def course_detail(request, course_id):
         'user_name': request.session.get('guest_name', request.user.full_name if request.user.is_authenticated else "زائر")
     }
     return render(request, 'library/course_detail.html', context)
+
+@login_required
+def delete_comment_view(request, comment_id):
+    if request.method != 'POST':
+        return redirect(request.META.get('HTTP_REFERER') or 'home')
+
+    comment = get_object_or_404(ForumPost, pk=comment_id)
+
+    if request.user.user_type == 'ROOT':
+        course_id = comment.course_id
+        comment.delete()
+        messages.success(request, 'تم حذف الرسالة')
+        return redirect('course_detail', course_id=course_id)
+
+    return redirect(request.META.get('HTTP_REFERER') or 'home')
 
 def add_comment(request, course_id):
     if request.method == 'POST':
