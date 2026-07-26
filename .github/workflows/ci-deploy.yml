@@ -1,0 +1,101 @@
+name: CI and Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  # ============================================================
+  # المرحلة 1: TEST
+  # فحص الكود + تشغيل الاختبارات ضد قاعدة بيانات PostgreSQL حقيقية
+  # (مؤقتة، بتتحذف بعد ما الـ job يخلص، مالهاش علاقة بقاعدة بياناتك الفعلية)
+  # ============================================================
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: ci_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Django system checks
+        env:
+          DJANGO_SECRET_KEY: dummy-key-for-ci-only
+          DATABASE_URL: postgres://ci_user:ci_password@localhost:5432/ci_test_db
+        run: python manage.py check
+
+      - name: Check for missing migrations
+        env:
+          DJANGO_SECRET_KEY: dummy-key-for-ci-only
+          DATABASE_URL: postgres://ci_user:ci_password@localhost:5432/ci_test_db
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run test suite
+        env:
+          DJANGO_SECRET_KEY: dummy-key-for-ci-only
+          DATABASE_URL: postgres://ci_user:ci_password@localhost:5432/ci_test_db
+        run: python manage.py test
+
+  # ============================================================
+  # المرحلة 2: DEPLOY
+  # بتشتغل بس لو كل خطوات test نجحت بالكامل
+  # ============================================================
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Deploy
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: curl -f -X POST "$DEPLOY_HOOK"
+
+  # ============================================================
+  # المرحلة 3: VERIFY (Health Check)
+  # التأكد إن الموقع فعلاً رجع شغال بعد النشر، مش بس إن الـ build نجح
+  # ============================================================
+  health_check:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Render to finish building
+        run: sleep 90
+
+      - name: Check production site is responding
+        env:
+          SITE_URL: ${{ secrets.PRODUCTION_URL }}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL")
+            echo "Attempt $attempt: HTTP status $status"
+            if [ "$status" -eq 200 ]; then
+              echo "✅ الموقع شغال ورجع 200 بنجاح"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "❌ الموقع مارجعش 200 بعد 5 محاولات - محتاج مراجعة يدوية"
+          exit 1
