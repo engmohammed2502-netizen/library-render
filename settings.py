@@ -41,7 +41,7 @@ DATABASES = {
             f"postgresql://{os.environ.get('DB_USER', 'rsu_user')}:{os.environ.get('DB_PASSWORD', 'rsu_password')}@{os.environ.get('DB_HOST', 'localhost')}:{os.environ.get('DB_PORT', '5432')}/{os.environ.get('DB_NAME', 'rsu_db')}"
         ),
         conn_max_age=600,
-        ssl_require=True if os.environ.get('DATABASE_URL') else False
+        ssl_require=os.environ.get('DATABASE_URL') is not None and os.environ.get('GITHUB_ACTIONS') != 'true'
     )
 }
 
